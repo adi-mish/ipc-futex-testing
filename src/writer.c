@@ -15,18 +15,30 @@ static void cleanup_writer(int sig) {
 }
 
 gboolean write_to_shared_memory(gpointer user_data) {
-  // Write to shared memory
-  time_t now = time(NULL);
-  snprintf(shared_mem->data, sizeof(shared_mem->data), "Current time: %s",
-           ctime(&now));
+  static int counter = 0;
+  char message[256];
+
+  // Get current time in milliseconds
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  long milliseconds =
+      ts.tv_nsec / 1000000; // Convert nanoseconds to milliseconds
+
+  // Write message to shared memory
+  snprintf(message, sizeof(message), "Message %d - Timestamp: %ld ms\n",
+           counter, milliseconds);
+  strcpy(shared_mem->data, message);
 
   // Set futex to 1 atomically
   shared_mem->futex = 1;
 
   // Wake up the reader
   int ret = futex_wake(&shared_mem->futex, 1);
-  if (ret == -1)
+  if (ret == -1) {
     error("futex_wake failed");
+  }
+
+  counter++; // Increment message counter
 
   return TRUE; // Continue calling this function
 }
@@ -68,9 +80,12 @@ int main() {
 
   // Initialize the GMainLoop
   main_loop = g_main_loop_new(NULL, FALSE);
+  
+  // Set up the timer to write to shared memory every 10 milliseconds
+  g_timeout_add(10, write_to_shared_memory, NULL);
 
-  // Set up the timer to write to shared memory every second
-  g_timeout_add_seconds(1, write_to_shared_memory, NULL);
+  // Run the main loop
+  g_main_loop_run(main_loop);
 
   // Run the main loop
   g_main_loop_run(main_loop);
