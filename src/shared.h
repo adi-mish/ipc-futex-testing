@@ -4,8 +4,10 @@
 #include <errno.h>
 #include <fcntl.h> // For file operations
 #include <linux/futex.h>
+#include <sched.h>
 #include <signal.h>
 #include <stdint.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,16 +17,19 @@
 #include <time.h>
 #include <unistd.h>
 
-#define SHARED_MEM_SIZE 1024
+#define STR_LEN 1024
+#define SHARED_MEM_SIZE sizeof(shared_data)
 #define SHARED_FILE_PATH "/my_shm_file"
 
 typedef struct {
-  char data[SHARED_MEM_SIZE];
+  char data[STR_LEN];
   int futex;
 } shared_data;
 
 void error(const char *msg);
 int futex_wait(int *uaddr, int val);
 int futex_wake(int *uaddr, int count);
+int set_cpu_affinity(int core_id);
+int elevate_priority(int priority);
 
 #endif /* SHARED_H */

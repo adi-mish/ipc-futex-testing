@@ -3,25 +3,42 @@
 int shm_fd;
 shared_data *shared_mem;
 
-void cleanup(int sig) {
-  munmap(shared_mem, sizeof(shared_data));
-  close(shm_fd);
+static void cleanup_reader(int sig) {
+  munmap(shared_mem, SHARED_MEM_SIZE);
   shm_unlink(SHARED_FILE_PATH);
   exit(0);
 }
 
 int main() {
-  signal(SIGINT, cleanup);
+  signal(SIGINT, &cleanup_reader);
 
-  shm_fd = shm_open(SHARED_FILE_PATH, O_RDWR, 0666);
+  shm_fd = shm_open(SHARED_FILE_PATH, O_CREAT | O_RDWR, 0666);
   if (shm_fd == -1)
     error("shm_open failed");
 
-  shared_mem = mmap(NULL, sizeof(shared_data), PROT_READ | PROT_WRITE,
+  if (ftruncate(shm_fd, SHARED_MEM_SIZE) == -1)
+    error("ftruncate failed");
+
+  shared_mem = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE,
                     MAP_SHARED, shm_fd, 0);
   if (shared_mem == MAP_FAILED)
     error("mmap failed");
 
+  int ret = close(shm_fd);
+  if (ret < 0) {
+    return ret;
+  }
+  // Set CPU affinity
+  if (set_cpu_affinity(1) == -1) {
+    error("set_cpu_affinity");
+    return 1;
+  }
+
+  // Elevate thread priority
+  if (elevate_priority(99) == -1) {
+    error("elevate_priority");
+    return 1;
+  }
   while (1) {
     // Wait until the futex is set to 1 by the writer
     while (1) {
@@ -41,9 +58,5 @@ int main() {
     printf("Message received: %s\n", shared_mem->data);
   }
 
-  // Clean up
-  munmap(shared_mem, sizeof(shared_data));
-  close(shm_fd);
-  shm_unlink(SHARED_FILE_PATH);
   return 0;
 }

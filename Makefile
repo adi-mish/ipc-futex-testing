@@ -2,8 +2,8 @@
 CC = clang
 
 # Compiler flags
-CFLAGS = -Wall -O3
-LDFLAGS = -lrt
+CFLAGS = -Wall -O3 `pkg-config --cflags glib-2.0`
+LDFLAGS = -lrt `pkg-config --libs glib-2.0`
 
 # Directories
 SRCDIR = src
@@ -30,7 +30,7 @@ $(BINDIR)/writer: $(OBJDIR)/writer.o $(OBJDIR)/shared.o
 # Linking reader executable
 $(BINDIR)/reader: $(OBJDIR)/reader.o $(OBJDIR)/shared.o
 	@mkdir -p $(BINDIR)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $^ -o $@
 
 # Compiling source files into object files
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(SRCDIR)/shared.h
