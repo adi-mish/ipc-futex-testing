@@ -23,10 +23,10 @@ int set_cpu_affinity(int core_id) {
   return ret;
 }
 
-int elevate_priority(int priority) {
+int elevate_priority(int priority, int policy) {
   struct sched_param params;
   params.sched_priority = priority;
   fprintf(stderr, "Setting thread priority to %d...\n", priority);
-  int ret = pthread_setschedparam(pthread_self(), SCHED_FIFO, &params);
+  int ret = pthread_setschedparam(pthread_self(), policy, &params);
   return ret;
 }

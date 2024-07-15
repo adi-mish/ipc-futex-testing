@@ -1,4 +1,5 @@
 #include "shared.h"
+#include <sched.h>
 
 int shm_fd;
 shared_data *shared_mem;
@@ -35,7 +36,7 @@ int main() {
   }
 
   // Elevate thread priority
-  if (elevate_priority(99) == -1) {
+  if (elevate_priority(99, SCHED_FIFO) == -1) {
     error("elevate_priority");
     return 1;
   }

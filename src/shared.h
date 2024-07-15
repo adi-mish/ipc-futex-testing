@@ -30,6 +30,6 @@ void error(const char *msg);
 int futex_wait(int *uaddr, int val);
 int futex_wake(int *uaddr, int count);
 int set_cpu_affinity(int core_id);
-int elevate_priority(int priority);
+int elevate_priority(int priority, int policy);
 
 #endif /* SHARED_H */
