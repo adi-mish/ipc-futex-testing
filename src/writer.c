@@ -1,7 +1,5 @@
 #include "shared.h"
-#include <glib-2.0/glib-object.h>
 #include <glib-2.0/glib.h>
-#include <sched.h>
 
 int shm_fd;
 shared_data *shared_mem;
