@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+
 #include "shared.h"
 
 void error(const char *msg) {
