@@ -1,5 +1,4 @@
 #include "shared.h"
-#include <sched.h>
 
 int shm_fd;
 shared_data *shared_mem;
@@ -20,26 +19,22 @@ int main() {
   if (ftruncate(shm_fd, SHARED_MEM_SIZE) == -1)
     error("ftruncate failed");
 
-  shared_mem = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE,
-                    MAP_SHARED, shm_fd, 0);
+  shared_mem = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
   if (shared_mem == MAP_FAILED)
     error("mmap failed");
 
-  int ret = close(shm_fd);
-  if (ret < 0) {
-    return ret;
-  }
+  close(shm_fd);
+
   // Set CPU affinity
   if (set_cpu_affinity(1) == -1) {
     error("set_cpu_affinity");
-    return 1;
   }
 
   // Elevate thread priority
   if (elevate_priority(99, SCHED_FIFO) == -1) {
     error("elevate_priority");
-    return 1;
   }
+
   while (1) {
     // Wait until the futex is set to 1 by the writer
     while (1) {
@@ -47,6 +42,7 @@ int main() {
       if (futex_val == 1) {
         break;
       }
+
       // Wait for the futex to become 1
       if (futex_wait(&shared_mem->futex, 0) == -1) {
         if (errno != EAGAIN) {

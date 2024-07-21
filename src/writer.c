@@ -21,16 +21,14 @@ gboolean write_to_shared_memory(gpointer user_data) {
   // Get current time in milliseconds
   struct timespec ts;
   clock_gettime(CLOCK_REALTIME, &ts);
-  long milliseconds =
-      ts.tv_nsec / 1000000; // Convert nanoseconds to milliseconds
+  long milliseconds = ts.tv_nsec / 1000000; // Convert nanoseconds to milliseconds
 
   // Write message to shared memory
-  snprintf(message, sizeof(message), "Message %d - Timestamp: %ld ms\n",
-           counter, milliseconds);
+  snprintf(message, sizeof(message), "Message %d - Timestamp: %ld ms\n", counter, milliseconds);
   strcpy(shared_mem->data, message);
 
   // Set futex to 1 atomically
-  shared_mem->futex = 1;
+  __sync_lock_test_and_set(&shared_mem->futex, 1);
 
   // Wake up the reader
   int ret = futex_wake(&shared_mem->futex, 1);
@@ -53,15 +51,11 @@ int main() {
   if (ftruncate(shm_fd, SHARED_MEM_SIZE) == -1)
     error("ftruncate failed");
 
-  shared_mem = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED,
-                    shm_fd, 0);
+  shared_mem = mmap(NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
   if (shared_mem == MAP_FAILED)
     error("mmap failed");
 
-  int ret = close(shm_fd);
-  if (ret < 0) {
-    return ret;
-  }
+  close(shm_fd);
 
   // Initialize the futex and shared data
   shared_mem->futex = 0;
@@ -69,23 +63,18 @@ int main() {
   // Set CPU affinity
   if (set_cpu_affinity(0) == -1) {
     error("set_cpu_affinity");
-    return 1;
   }
 
   // Elevate thread priority
   if (elevate_priority(99, SCHED_FIFO) == -1) {
     error("elevate_priority");
-    return 1;
   }
 
   // Initialize the GMainLoop
   main_loop = g_main_loop_new(NULL, FALSE);
-  
+
   // Set up the timer to write to shared memory every 10 milliseconds
   g_timeout_add(10, write_to_shared_memory, NULL);
-
-  // Run the main loop
-  g_main_loop_run(main_loop);
 
   // Run the main loop
   g_main_loop_run(main_loop);
