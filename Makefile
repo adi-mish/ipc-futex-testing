@@ -2,7 +2,7 @@
 CC = clang
 
 # Compiler flags
-CFLAGS = -Wall -O3 `pkg-config --cflags glib-2.0`
+CFLAGS = -Wall -march=native -O3 `pkg-config --cflags glib-2.0`
 LDFLAGS = -lrt `pkg-config --libs glib-2.0`
 
 # Directories
